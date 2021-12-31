@@ -1,17 +1,15 @@
 void di()
 {
-  if (balans >= 57  )
+  if (balans >= 57)
   {
     volw = 19;
   }
-  else {
+  else 
+  {
     volw = 5;
   }
-  tiwater=(twater / price)*balans;
+  tiwater = (twater / price)*balans;
   delay(50);
-  
-
-
 }
 void COD() //ЦОД - центр обработки действий
 {
@@ -26,15 +24,10 @@ void COD() //ЦОД - центр обработки действий
     timecash = millis();
     timerstart=millis();
     freeWater = 0;
-    flag_start = 0;
-     
+    flag_start = 0; 
   }
-
-
-
   if (   balans == 0 && pump == 1 && flag_start == 0  ) //стоп по балансу millis()-timerstart >= tiwater
   {
-
     digitalWrite(PUMP, 0);
     RELAY.digitalWrite(P5, 0); //клапан включить
     RELAY.digitalWrite(P2, 0); //реле насоса включить
@@ -53,7 +46,7 @@ void COD() //ЦОД - центр обработки действий
     pump = 0;
     docash=0;
     tablo_off();
- UOB();
+    UOB();
   }
 
   if (balans == 0 && pump == 1 && flag_start == 1 && freeWater == 0) // без денег обнулить
@@ -72,7 +65,7 @@ void COD() //ЦОД - центр обработки действий
     tablo_off();
     docash=0;
     timerFW = millis();
- UOB();
+    UOB();
   }
 
   if ((lit19 / price) == volw && SR == 0 && balans > 0) //ФУНКЦИЯ СТОП ПО ОБЬЕМУ
@@ -89,11 +82,8 @@ void COD() //ЦОД - центр обработки действий
     docash=0;
     pump = 0;
     VBM = millis();
-  
     UOB();
   }
-
-
   if (balans > 0  && pump == 0  && flag_start == 1) // стоп по нажатию кнопки
   {
     if(iboneh>=3)
@@ -111,9 +101,7 @@ void COD() //ЦОД - центр обработки действий
     pump = 0;
     docash=0;
     flag_start = 0;
-    VBM = millis();
-  
-   
+    VBM = millis(); 
   }
 }
 
@@ -132,15 +120,12 @@ void pushstop()
     flag_start = 0;
     VBM = millis();
     UOB();
-  
   }
-  
-  }
+}
 
-
-  void pushstart()
-  {
-     if (balans > 0 && docash==1 )  // запуск при наличии денег
+void pushstart()
+{
+  if (balans > 0 && docash==1 )  // запуск при наличии денег
   {
     di();
     digitalWrite(PUMP, 1 );
@@ -153,7 +138,4 @@ void pushstop()
     timecash = millis();
     timerstart=millis();
   }
-  }
-    
-    
-   
+}

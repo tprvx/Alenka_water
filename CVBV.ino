@@ -1,6 +1,7 @@
 void CVBV()
 {
-  if (  flag_start  == 1 && balans == 0  && freeWater == 1 && SR == 0 && pump == 1 ) // функция бесплатной воды
+  // функция бесплатной воды
+  if(flag_start  == 1 && balans == 0  && freeWater == 1 && SR == 0 && pump == 1 ) 
   {
     digitalWrite(led, 1);
     RELAY.digitalWrite(P5, 1); //клапан включить

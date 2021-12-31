@@ -5,65 +5,65 @@
 #include "RTClib.h"      //библиотека работы часов реального времени 
 #include <GyverWDT.h>    //библиотека сторожевого таймера 
 #include <EEPROM.h>
-RTC_DS1307 rtc;                    // Часы
-PCF8574 RELAY(0x20);               // Реле
-//PCF8574 inout(0x24);               // I/O
-
-
-void(*resetFunc) (void) = 0; // Функция перезагрузки
 
 #define INIT_ADDR 1023  // номер резервной ячейки
 #define INIT_KEY 50     // ключ первого запуска. 0-254, на выбор
+#define latchPin A1     // latchPin  индикатора 
+#define clockPin A2     // clockPin  индикатора
+#define dataPin  A3     // dataPin   индикатора
+#define startPin 2      // пин кнопки старт/стоп
+#define led 4           // пин led кнопки
+#define sE 5            // пин датчика ошибок
+#define coinPin 6       // пин с монетоприемника
+#define DV 7            // пин датчика напряжениия
+#define fiat 8          // пин купюроприемника
+#define PUMP 9          // пин насоса
 
-OneWire ds(A0);      // ds18b20
-#define latchPin A1  // latchPin  индикатора 
-#define clockPin A2  // clockPin  индикатора
-#define dataPin  A3  // dataPin   индикатора
-#define startPin 2   // пин кнопки старт/стоп
-OneWire iB(3);       // iBUTTON
-#define led  4       // пин led кнопки
-#define sE  5       // пин датчика ошибок
-#define coinPin 6    // пин с монетоприемника
-#define DV 7         //пин датчика напряжениия
-#define fiat  8      // пин купюроприемника
-#define PUMP  9      // пин насоса
+void(*resetFunc)(void) = 0; // Функция перезагрузки
 
+RTC_DS1307 rtc;         // Часы
+PCF8574 RELAY(0x20);    // Реле
 
-String number = "" ;          // с SD номер телефона
-String ID_m = "";            // с SD номер машины
-float price;                  // с SD цена за литр
+OneWire ds(A0);         // ds18b20
+OneWire iB(3);          // iBUTTON
+
+String number = "";     // с SD номер телефона
+String ID_m = "";       // с SD номер машины
+float price;            // с SD цена за литр
 byte tw;
-int  twater;          // с SD время наполнения 1 литра в мсек.
-byte keybalans;                // с SD пополнение баланса с ключа в руб.
-byte rezervwater;              // с SD резервный обьем воды в л.
-byte timeFree;                 // с SD время между freeWater в сек.
+int  twater;            // с SD время наполнения 1 литра в мсек.
+byte keybalans;         // с SD пополнение баланса с ключа в руб.
+byte rezervwater;       // с SD резервный обьем воды в л.
+byte timeFree;          // с SD время между freeWater в сек.
 byte volw;
 byte lit19;
 byte SF;
 byte temprezervwater;
 long  tiwater;
 
-/////////////////////////
-unsigned long //таймеры
-timecash,
-debounce, //антидребезг кнопки старт
-timer1,   //таймер 1
-timer2,   //таймер 1
-timer3,   //таймер 1
-timerstart,
-timerFW,
-t_SOS,      //таймер SOS
-VBM,
-resetTime,
-t1,
-t2
-;
-/////////////////////////
+///////////////////////////таймеры////////////////////////////////////
 
-int  temperature;        // Глобальная переменная для хранения значение температуры с датчика DS18B20
-byte A = 0;             //2 разряд индикатора
-byte B = 0;             //1 разряд индикатора
-int  balans;            //  баланс
+unsigned long timecash;
+
+volatile unsigned long debounce; //антидребезг кнопки старт  <-- Добавил volatile
+
+unsigned long timer1;       //таймер 1
+unsigned long timer2;       //таймер 1
+unsigned long timer3;       //таймер 1
+unsigned long timerstart;
+unsigned long timerFW;
+unsigned long t_SOS;        //таймер SOS
+unsigned long VBM;
+unsigned long resetTime;
+unsigned long t1;
+unsigned long t2;
+
+///////////////////////////////////////////////////////////////////////
+
+int  temperature;          //для хранения значение температуры с датчика DS18B20
+byte A = 0;                //2 разряд индикатора
+byte B = 0;                //1 разряд индикатора
+int  balans;               //баланс
 byte ledB = 0;
 byte leds = 0;
 
@@ -75,12 +75,15 @@ boolean freeWater ;
 boolean SR;
 boolean DDV;
 
-byte pump;
+////Здесь добавил volatile////
+volatile byte pump;
+volatile boolean flag_start;
+/////////////////////////////
+
 boolean heater;
 boolean heater_SOS;
 boolean gvozdik;
 boolean statusSD;
-boolean flag_start;
 
 boolean Es;
 byte rezerv;
@@ -102,10 +105,11 @@ float volumeWater;
 byte say1;
 byte say2;
 
-int lit[]  = {  // массив цифр и символов для индикатора с общим катодом
-  0b00000011, //цифра 0 0b00000011
+// массив цифр и символов для индикатора с общим катодом
+int lit[]  = {  
+  0b00000011, //цифра 0  0b00000011
   0b10011111, //цифра 1  0b10011111
-  0b00100101, //цифра 2 0b00100101
+  0b00100101, //цифра 2  0b00100101
   0b00001101, //цифра 3  0b00001101
   0b10011001, //цифра 4  0b10011001
   0b01001001, //цифра 5  0b01001001
@@ -113,7 +117,9 @@ int lit[]  = {  // массив цифр и символов для индика
   0b00011111, //цифра 7  0b00011111
   0b00000001, //цифра 8  0b00000001
   0b00001001, //цифра 9  0b00001001
-  0b11111111,}; //цифра 10  0b00001001
+  0b11111111, //цифра 10 0b00001001
+}; 
+
 int num[] = {
   0b11100011, //0 L
   0b11111101, //1 norm
@@ -122,31 +128,36 @@ int num[] = {
   0b11101111, //4 low
   0b11100101, //5 c
   0b00110000, //6 p
-  0b11111111,}; //7 offf
+  0b11111111,
+}; //7 offf
 
-char* words[] = { " ", //0
+char* words[] = { " ",      //0
                   "ERROR-", //1
-                  "E1", //2
-                  "E2", //3
-                  "E3", //4
-                  "E4", //5
-                  "RESET", //6
+                  "E1",     //2
+                  "E2",     //3
+                  "E3",     //4
+                  "E4",     //5
+                  "RESET",  //6
                   "START ", //7
-                  "OK", //8
-                  "SD", //9
-                  "ErrSD",}; //10
+                  "OK",     //8
+                  "SD",     //9
+                  "ErrSD",  //10
+                };          
 
-byte aaa[2][8] = {{0x01, 0x01, 0x98, 0xBD, 0x01, 0x00, 0x00, 0x24},    // Двухмерный массив известных ключей
+//массив известных ключей
+// Первое число - количество ключей, второе - количество байт в ключе
+byte aaa[2][8] = {{0x01, 0x01, 0x98, 0xBD, 0x01, 0x00, 0x00, 0x24},    
   {0x01, 0x40, 0x91, 0xBD, 0x01, 0x00, 0x00, 0x95}
-};   // Первое число - количество ключей, второе - количество байт в ключе
-byte addr[8], k, m;                                                    // Обозначаем массив для чтения ключа из 8 байт
+};
+// Обозначаем массив для чтения ключа из 8 байт
+byte addr[8], k, m;     
 
-void setup() {
+void setup()
+{
   Serial.begin(9600);
   pinMode(10, OUTPUT);
   SD.begin(10);
-  startEEPROM();           //чтение флагов с EEPROM
-
+  startEEPROM();                    //чтение флагов с EEPROM
 
   pinMode(latchPin, OUTPUT);
   pinMode(clockPin, OUTPUT);
@@ -164,102 +175,109 @@ void setup() {
   RELAY.pinMode(P5, OUTPUT);       // P5, реле клапана
   RELAY.digitalWrite(P5, 0);
   RELAY.pinMode(P6, OUTPUT);       // P6, реле монетоприемника &  кнопки
-  
 
   pinMode(sE, INPUT);
   digitalWrite(sE, 1);
 
-
   pinMode(PUMP, OUTPUT);
   digitalWrite(PUMP, 0);
 
-  pinMode(coinPin, INPUT);   //монетоприемник
+  pinMode(coinPin, INPUT);    //монетоприемник
   digitalWrite(coinPin, 1);
 
-  pinMode(fiat, INPUT);      //купюроприемник
+  pinMode(fiat, INPUT);       //купюроприемник
   digitalWrite(fiat, 1);
 
-  pinMode(DV, INPUT);   //датчик напряжениия
+  pinMode(DV, INPUT);         //датчик напряжениия
   digitalWrite(DV, 0);
   pinMode(led, OUTPUT);       // led кнопки
 
-  pinMode(startPin, INPUT);    // кнопка старт
+  pinMode(startPin, INPUT);   // кнопка старт
   digitalWrite(startPin, 1);
-  attachInterrupt(0, ss, RISING  );//FALLING RISING
-  // Watchdog.enable(RESET_MODE, WDT_PRESCALER_512); // Режим сторжевого сброса , таймаут ~4с
+
+  //FALLING RISING - падение напряжения с '1' до '0'
+  attachInterrupt(0, ss, RISING); 
+
   digitalWrite(led, 1);
   delay(500);
   digitalWrite(led, 0);
   tablo_off();
 
-    if (! rtc.begin()) {
+  if (!rtc.begin()) 
+  {
     abort();
   }
-  
-  if (!SD.begin(10)) {
+
+  if (!SD.begin(10)) 
+  {
     delay(1000);
     resetFunc();
   }
 
   READ_SD();
-  setSD();   
+  setSD();
   CUCH();
-
 }
 
-void loop() {
-  
+void loop() 
+{
   if (pump == 1 && READY == 1)
-  { cash();
+  { 
+    cash();
 
-  if(iboneh>=4)
-  {iboneh=0;}
+    if (iboneh >= 4)
+    {
+      iboneh = 0;
+    }
     t1 = (millis() - timerstart);
   }
 
-  if (millis() - timer1 >= 2000 && READY == 0)            // обновление данных
+  if ((millis() - timer1) >= 2000 && (READY == 0)) // обновление данных
   {
     leds = !leds;
     iBUTTON();
     what_time_is_it();
     wtemp();
-    if(   e4==0){fanytime();}
+    if (e4 == 0) 
+    {
+      fanytime();
+    }
     digitalWrite(PUMP, 0);
     RELAY.digitalWrite(P5, 0); //клапан включить
     RELAY.digitalWrite(P2, 0); //реле насоса включить
     timer1 = millis();
   }
 
-if (millis() - timer3 >= 1000&& READY == 0  )                  // моргание
+  if(millis() - timer3 >= 1000 && READY == 0) // моргание
   {
-    
-  
-    Es=digitalRead(sE);
-   sensorE();
+    Es = digitalRead(sE);
+    sensorE();
     timer3 = millis();
   }
 
-  if (millis() - timer2 >= 500 && READY == 1 )                  // моргание
+  if((millis() - timer2) >= 500 && READY == 1) // моргание
   {
     ledB = !ledB;
     timer2 = millis();
   }
 
-  if(balans==0 && temprezervwater/price>rezervwater)
-    {E4();}
-
-  if (millis() - VBM > 1000 && (balans / price) + (temprezervwater / price) >= rezervwater && rezerv == 1)
-  { delay(500);
-    RELAY.digitalWrite(P6, 0);  //выключить монетоприемник
-    
+  if(balans == 0 && ((temprezervwater / price) > rezervwater))
+  {
+    E4();
   }
 
+  if((millis() - VBM) > 1000 && (((balans / price) + (temprezervwater / price)) >= rezervwater) && rezerv == 1)
+  { 
+    delay(500);
+    RELAY.digitalWrite(P6, 0);  //выключить монетоприемник
+  }
 
-  if (millis() - VBM > 300000  && pump == 0 && balans != 0 && READY == 1   ) // функция списания баланса после ожидания 300000
+  //Cписание баланса после ожидания 5 минут
+  if(millis() - VBM > 300000  && pump == 0 && balans != 0 && READY == 1) 
   {
     saleSMS();
     sd();
-    while ( balans != 0)
+    while(balans != 0)
     {
       balans--;
       tempbalans++;
@@ -277,88 +295,91 @@ if (millis() - timer3 >= 1000&& READY == 0  )                  // моргани
     GmMm();
   }
 
-  if ( balans > 0 && pump == 0 && READY == 1  )
+  if(balans > 0 && pump == 0 && READY == 1)
   {
     digitalWrite(led, ledB );
   }
 
-
-  /////////////
-
-  if (millis() - debounce > 50 && digitalRead(coinPin) == LOW)                 // реакция на монетоприемник
+  if(millis() - debounce > 50 && digitalRead(coinPin) == LOW) // реакция на монетоприемник
   {
-    if(docash==1){
-    pushstop();}
-   
+    if(docash == 1) 
+    {
+      pushstop();
+    }
+
     READY = 1;
-    balans ++;
+    balans++;
     debounce = millis();
     VBM = millis();
   }
 
-  if (digitalRead(fiat) == LOW )                 // реакция на купюроприемник
+  if(digitalRead(fiat) == LOW) // реакция на купюроприемник
   {
-    if(docash==1){
-    pushstop();}
+    if (docash == 1) 
+    {
+      pushstop();
+    }
     delay(100);
     READY = 1;
     balansFIAT ++;
     debounce = millis();
     VBM = millis();
   }
-  
-  if (millis() - VBM == 200 && balansFIAT >= 1  )
+
+  if(millis() - VBM == 200 && balansFIAT >= 1)
   {
     UOFB();
-    if(docash==1){
-    pushstart();}
+    if(docash == 1) 
+    {
+      pushstart();
+    }
   }
 
-  if (millis() - VBM == 200 && balans >= 1  )
+  if(millis() - VBM == 200 && balans >= 1)
   {
     UOB();
-    if(docash==1){
-    pushstart();}
+    if (docash == 1) 
+    {
+      pushstart();
+    }
   }
 
-    if (balans >= 200 )
+  if(balans >= 200)
   {
     RELAY.digitalWrite(P6, 0);  //включить монетоприемник
   }
-  
-  if (balans == 0 && rezerv ==false )
+
+  if(balans == 0 && rezerv == false)
   {
     RELAY.digitalWrite(P6, 1);  //включить монетоприемник
   }
-  /////////////////////////////////////
 
-  if ((millis() - timerFW) / 1000 > timeFree  ) //timeFree
+  if((millis() - timerFW) / 1000 > timeFree) //timeFree
   {
     freeWater = true;
     timerFW = millis();
   }
 
-  if (freeWater == 1 && READY == 0)
+  if(freeWater == 1 && READY == 0)
   {
     digitalWrite(led, leds);
   }
-  ///////////////////////////////////////
 
-  if (flag_start == 1 && SR == 0 ) //
+  if(flag_start == 1 && SR == 0)
   {
     delay(50);
     zapusk();
   }
 
-  if (flag_start == 1 && SR == 1 ) //
+  if(flag_start == 1 && SR == 1)
   {
     delay(50);
     servicemod();
   }
-
 }
 
-
+//Все переменные, которые меняют значение в этой функции
+//должны быть объявлены выше как volatile
 void ss()
 {
   if (millis() - debounce > 200 && digitalRead(2))

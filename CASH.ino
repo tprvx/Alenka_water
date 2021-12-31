@@ -1,6 +1,5 @@
 void cash()   
 {
- 
   if ((millis()-timecash)*price >= twater && pump==1 && rezerv==0  )
   {
     balans--;
@@ -8,8 +7,7 @@ void cash()
     lit19++;
     UOB();
     COD();
-    timecash = millis();
-    
+    timecash = millis();  
   }
 
   if ((millis()-timecash)*price >= twater && pump == 1 && rezerv == 1 )
@@ -20,8 +18,6 @@ void cash()
     tempbalans++;
     UOB();
     COD();
-    timecash = millis();
-    
+    timecash = millis();  
   }
-
 }

@@ -1,18 +1,16 @@
 void termostat()
-{
-  
+{ 
   if (temperature <= 15 || temperature >= 2 && heater == false )        //терморегулятор
   {
     heater = true;
   }
 
   if (temperature > 15  && heater == true )         //терморегулятор
-  { heater = false;
+  { 
+    heater = false;
     heater_SOS = false;                            // опускаем флаг помощи
     EEPROM.update(eeprom_SOS, heater_SOS);   //в eeprom втыкаем флаг
-   
   }
-
 
   if (heater == true)
   {
@@ -35,7 +33,5 @@ void termostat()
 if ((millis() - t_SOS) / 600000 >= 1 &&  heater_SOS == true) //каждые 5 минут сообщать о заморозке
   { 
    CUCH();
-  }
-  
-
+  }  
 }

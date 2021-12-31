@@ -1,4 +1,5 @@
-void sendSMS() //Центр отправки СМС
+//Функция отправки СМС
+void sendSMS()
 {
   wtemp();
   DateTime time = rtc.now();
@@ -22,11 +23,12 @@ void sendSMS() //Центр отправки СМС
   Serial.print("  ");
   Serial.println(time.timestamp(DateTime::TIMESTAMP_TIME));
   Serial.write(26); 
-  say1=0;
-  say2=0;
-  }
+  say1 = 0;
+  say2 = 0;
+}
 
-  void saleSMS() //Центр отправки СМС
+//Функция отправки СМС (вторая, нужна ли?)
+void saleSMS() 
 {
   wtemp();
   DateTime time = rtc.now();
@@ -41,9 +43,9 @@ void sendSMS() //Центр отправки СМС
   delay(500);
   Serial.print("id-");
   Serial.println(ID_m);
-   Serial.print(tempbalans);
-    Serial.println("rub. ");
-    Serial.print(tempbalans / price);
+  Serial.print(tempbalans);
+  Serial.println("rub. ");
+  Serial.print(tempbalans / price);
   Serial.println("lit.");
   delay(50);
   Serial.print("temp. ");
@@ -54,6 +56,6 @@ void sendSMS() //Центр отправки СМС
   Serial.print("  ");
   Serial.println(time.timestamp(DateTime::TIMESTAMP_TIME));
   Serial.write(26); 
-  say1=0;
-  say2=0;
-  }
+  say1 = 0;
+  say2 = 0;
+}

@@ -1,4 +1,6 @@
-void wtemp(){   // функция получения температуры 
+//функция работы с температурой
+void wtemp() 
+{  
   byte data[2];
   ds.reset();
   ds.write(0xCC);
@@ -10,7 +12,7 @@ void wtemp(){   // функция получения температуры
   data[1] = ds.read();
   temperature = (data[1] << 8) + data[0]; temperature = temperature >> 4;
   termostat();
-  }
+}
 
 
-  
+
